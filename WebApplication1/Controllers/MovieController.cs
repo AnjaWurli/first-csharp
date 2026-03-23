@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using WebApplication1.Models;
 
 namespace WebApplication1.Controllers;
@@ -8,6 +10,15 @@ namespace WebApplication1.Controllers;
 [ApiController]
 public class MovieController : ControllerBase
 {
+    //the ApplicationDbContext instance is passed to the controller through constructor injection for each request
+    // to perform a unit-of-work before being disposed when the request ends.
+    private readonly MovieDbContext _context;
+
+    public MovieController(MovieDbContext context)
+    {
+        _context = context;
+    }
+    
     //Adding triple-slash comments to an action enhances the Swagger UI by adding the description to the section header.
     // GET: api/<MovieController>
     /// <summary>
@@ -15,9 +26,11 @@ public class MovieController : ControllerBase
     /// </summary>
     /// <returns>list of movies</returns>
     [HttpGet]
-    public IEnumerable<Movie> Get()
+    public async Task<IEnumerable<Movie>> Get()
     {
-        return movies;
+            return await _context.Movies
+                .ToListAsync();
+        
     }
 
     // GET api/<MovieController>/5
@@ -29,9 +42,11 @@ public class MovieController : ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public Movie Get(int id)
+    public async Task<Movie> Get(int id)
     {
-        return movies.FirstOrDefault(x => x.Id == id);
+        return await _context.Movies
+            .Where(m => m.Id == id)
+            .SingleAsync();
     }
 
     // POST api/<MovieController>
@@ -44,9 +59,9 @@ public class MovieController : ControllerBase
     ///
     ///     POST /movie
     ///     {
-    ///        "id": 1,
-    ///        "name": "Item #1",
-    ///        "isComplete": true
+    ///        "PublicationYear" : 2008,
+    ///        "Rating":7.9,
+    ///        "Stars" : [ "Robert Downey Jr.", "Gwyneth Paltrow", "Terrence Howard", "Jeff Bridges" ]
     ///     }
     ///
     /// </remarks>
@@ -57,7 +72,9 @@ public class MovieController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public void Post([FromBody] Movie value)
     {
-        movies.Add(value);
+          _context.Movies
+            .Add(value);
+         _context.SaveChangesAsync();
     }
 
     // DELETE api/<MovieController>/5
@@ -67,32 +84,31 @@ public class MovieController : ControllerBase
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpDelete("{id}")]
-    public void Delete(int id)
+    public async Task<int> Delete(int id)
     {
-        movies.RemoveAll(m => m.Id == id);
+          return await _context.Movies
+            .Where(m => m.Id == id)
+            .ExecuteDeleteAsync();
     }
-    
-    private static readonly List<Movie> movies = new List<Movie>() {
-        new Movie{
-            Id = 1,
-            Title="Iron Man",
-            PublicationYear = 2008,
-            Rating=7.9f,
-            Stars = new []{ "Robert Downey Jr.", "Gwyneth Paltrow", "Terrence Howard", "Jeff Bridges" }
-        },
-        new Movie{
-            Id = 2,
-            Title="Thor",
-            PublicationYear = 2011,
-            Rating=7f,
-            Stars = new []{ "Chris Hemsworth", "Anthony Hopkins", "Natalie Portman", "Tom Hiddleston" }
-        },
-        new Movie{
-            Id = 3,
-            Title=" Guardians of the Galaxy",
-            PublicationYear = 2014,
-            Rating=8f,
-            Stars = new []{ "Chris Pratt", "Vin Diesel", "Bradley Cooper", "Zoe Saldana" }
-        }
-    };
 }
+
+/*
+ {
+        "Title":"Iron Man",
+        "PublicationYear" : 2008,
+        "Rating":7.9,
+        "Stars" : [ "Robert Downey Jr.", "Gwyneth Paltrow", "Terrence Howard", "Jeff Bridges" ]
+ }
+  {
+       "Title":"Thor",
+       "PublicationYear" : 2011,
+       "Rating":7,
+       "Stars" : [ "Chris Hemsworth", "Anthony Hopkins", "Natalie Portman", "Tom Hiddleston" ]
+   }
+   {
+       "Title":"Guardians of the Galaxy",
+       "PublicationYear" : 2014,
+       "Rating":8,
+       "Stars" : [ "Chris Pratt", "Vin Diesel", "Bradley Cooper", "Zoe Saldana" ]
+   }
+ */
