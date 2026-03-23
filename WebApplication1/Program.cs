@@ -5,7 +5,9 @@ var builder = WebApplication.CreateBuilder(args); //makes configured services av
 //initialize new instance of WebApplication class with preconfigured defaults
 
 // Add services to the container.
-builder.Services.AddControllersWithViews(); //common usage for MVC
+
+//builder.Services.AddControllersWithViews(); //common usage for MVC
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();//only for minimal APIs
 
 //builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -40,6 +42,9 @@ app.UseRouting(); //to route requests, If not called, runs at the beginning of t
 
 app.UseAuthorization();//authorizes a user to access secure resources
 
+app.MapControllers();
+ 
+/*
 app.MapStaticAssets();// Serve static files (CSS, JS, etc.)
 /*
 app.MapControllerRoute( // For MVC controllers
